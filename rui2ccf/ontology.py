@@ -1,4 +1,5 @@
-from rdflib import Graph, Namespace, URIRef, Literal, BNode, XSD, RDF
+from stringcase import snakecase
+from rdflib import Graph, Namespace, URIRef, Literal, BNode, XSD, RDF, RDFS
 from rdflib.extras.infixowl import OWL_NS, Ontology, Class, Property
 
 
@@ -72,6 +73,9 @@ class SPOntology:
         z_dimension =\
             Property(SPOntology._CCF_NS.z_dimension,
                      baseType=OWL_NS.DatatypeProperty, graph=g)
+        dimension_unit =\
+            Property(SPOntology._CCF_NS.dimension_unit,
+                     baseType=OWL_NS.DatatypeProperty, graph=g)
         x_scaling =\
             Property(SPOntology._CCF_NS.x_scaling,
                      baseType=OWL_NS.DatatypeProperty, graph=g)
@@ -80,6 +84,9 @@ class SPOntology:
                      baseType=OWL_NS.DatatypeProperty, graph=g)
         z_scaling =\
             Property(SPOntology._CCF_NS.z_scaling,
+                     baseType=OWL_NS.DatatypeProperty, graph=g)
+        scaling_unit =\
+            Property(SPOntology._CCF_NS.scaling_unit,
                      baseType=OWL_NS.DatatypeProperty, graph=g)
         x_rotation =\
             Property(SPOntology._CCF_NS.x_rotation,
@@ -90,6 +97,9 @@ class SPOntology:
         z_rotation =\
             Property(SPOntology._CCF_NS.z_rotation,
                      baseType=OWL_NS.DatatypeProperty, graph=g)
+        rotation_unit =\
+            Property(SPOntology._CCF_NS.rotation_unit,
+                     baseType=OWL_NS.DatatypeProperty, graph=g)
         x_translation =\
             Property(SPOntology._CCF_NS.x_translation,
                      baseType=OWL_NS.DatatypeProperty, graph=g)
@@ -98,6 +108,9 @@ class SPOntology:
                      baseType=OWL_NS.DatatypeProperty, graph=g)
         z_translation =\
             Property(SPOntology._CCF_NS.z_translation,
+                     baseType=OWL_NS.DatatypeProperty, graph=g)
+        translation_unit =\
+            Property(SPOntology._CCF_NS.translation_unit,
                      baseType=OWL_NS.DatatypeProperty, graph=g)
         file_name =\
             Property(SPOntology._CCF_NS.file_name,
@@ -145,15 +158,19 @@ class SPOntology:
             x_dimension=x_dimension,
             y_dimension=y_dimension,
             z_dimension=z_dimension,
+            dimension_unit=dimension_unit,
             x_scaling=x_scaling,
             y_scaling=y_scaling,
             z_scaling=z_scaling,
+            scaling_unit=scaling_unit,
             x_rotation=x_rotation,
             y_rotation=y_rotation,
             z_rotation=z_rotation,
+            rotation_unit=rotation_unit,
             x_translation=x_translation,
             y_translation=y_translation,
             z_translation=z_translation,
+            translation_unit=translation_unit,
             file_name=file_name,
             file_subpath=file_subpath,
             file_format=file_format,
@@ -259,13 +276,30 @@ class SPOntology:
                             reference_organ, representation_of, extraction_set,
                             rui_rank):
         self.graph.add((identifier, RDF.type, OWL_NS.NamedIndividual))
-        self.graph.add((identifier, RDF.type, self._iri_of('spatial_entity')))
+
+        # self.graph.add((identifier, RDF.type, self._iri_of('spatial_entity')))
+        # if representation_of is not None:
+        #     bn = BNode()
+        #     self.graph.add((identifier, RDF.type, bn))
+        #     self.graph.add((bn, RDF.type, OWL_NS.Restriction))
+        #     self.graph.add((bn, OWL_NS.onProperty, self._iri_of('representation_of')))
+        #     self.graph.add((bn, OWL_NS.someValuesFrom, representation_of))
+
         if representation_of is not None:
+            spatial_entity_id = self._iri(self._CCF_BASE_IRI +
+                                          "spatial_entity_of_" +
+                                          snakecase(title))
+            self.graph.add((identifier, RDF.type, spatial_entity_id))
             bn = BNode()
-            self.graph.add((identifier, RDF.type, bn))
+            self.graph.add((spatial_entity_id, OWL_NS.equivalentClass, bn))
             self.graph.add((bn, RDF.type, OWL_NS.Restriction))
             self.graph.add((bn, OWL_NS.onProperty, self._iri_of('representation_of')))
             self.graph.add((bn, OWL_NS.someValuesFrom, representation_of))
+            self.graph.add((spatial_entity_id, RDFS.subClassOf, self._iri_of('spatial_entity')))
+        else:
+            self.graph.add((identifier, RDF.type, self._iri_of('spatial_entity')))
+
+
         self.graph.add((identifier, self._iri_of('title'), title))
         self._add_measurement(identifier, self._iri_of('x_dimension'), x_dimension,
                               self._OBO_NS.UO_0000016)  # millimeter
@@ -273,6 +307,8 @@ class SPOntology:
                               self._OBO_NS.UO_0000016)  # millimeter
         self._add_measurement(identifier, self._iri_of('z_dimension'), z_dimension,
                               self._OBO_NS.UO_0000016)  # millimeter
+        self.graph.add((identifier, self._iri_of('dimension_unit'),
+                              self._string("millimeter")))
         self.graph.add((identifier, self._iri_of('creator'), creator))
         self.graph.add((identifier, self._iri_of('creation_date'), creation_date))
         if object_reference is not None:
@@ -321,18 +357,24 @@ class SPOntology:
                               self._OBO_NS.UO_0010006)  # ratio
         self._add_measurement(identifier, self._iri_of('z_scaling'), z_scaling,
                               self._OBO_NS.UO_0010006)  # ratio
+        self.graph.add((identifier, self._iri_of('scaling_unit'),
+                              self._string("ratio")))
         self._add_measurement(identifier, self._iri_of('x_rotation'), x_rotation,
                               self._OBO_NS.UO_0000185)  # degree
         self._add_measurement(identifier, self._iri_of('y_rotation'), y_rotation,
                               self._OBO_NS.UO_0000185)  # degree
         self._add_measurement(identifier, self._iri_of('z_rotation'), z_rotation,
                               self._OBO_NS.UO_0000185)  # degree
+        self.graph.add((identifier, self._iri_of('rotation_unit'),
+                              self._string("degree")))
         self._add_measurement(identifier, self._iri_of('x_translation'), x_translation,
                               self._OBO_NS.UO_0000016)  # millimeter
         self._add_measurement(identifier, self._iri_of('y_translation'), y_translation,
                               self._OBO_NS.UO_0000016)  # millimeter
         self._add_measurement(identifier, self._iri_of('z_translation'), z_translation,
                               self._OBO_NS.UO_0000016)  # millimeter
+        self.graph.add((identifier, self._iri_of('translation_unit'),
+                              self._string("millimeter")))
         self.graph.add((identifier, self._iri_of('creation_date'),
                        placement_date))
 
@@ -391,7 +433,7 @@ class SPOntology:
 
     def _get_file_subpath(self, obj):
         try:
-            self._string(obj['file_subpath'])
+            return self._string(obj['file_subpath'])
         except KeyError:
             return None
 
