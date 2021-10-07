@@ -27,7 +27,7 @@ setup(name='rui2ccf',
       license='GPL-3.0',
       classifiers=classifiers,
       install_requires=[
-          'rdflib==5.0.0',
+          'rdflib==6.0.1',
           'stringcase==1.2.0',
           'requests_file==1.5.1'
       ],
