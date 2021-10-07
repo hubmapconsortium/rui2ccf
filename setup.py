@@ -5,7 +5,7 @@ from setuptools import find_packages
 from rui2ccf import __version__
 
 classifiers = """
-Development Status :: 4 - Beta
+Development Status :: 5 - Production/Stable
 Environment :: Console
 License :: OSI Approved :: BSD License
 Intended Audience :: Science/Research
