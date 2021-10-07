@@ -7,7 +7,7 @@ from rui2ccf import __version__
 classifiers = """
 Development Status :: 4 - Beta
 Environment :: Console
-License :: OSI Approved :: GNU General Public License (GPL)
+License :: OSI Approved :: BSD License
 Intended Audience :: Science/Research
 Topic :: Scientific/Engineering
 Topic :: Scientific/Engineering :: Bio-Informatics
@@ -24,7 +24,7 @@ setup(name='rui2ccf',
       author='Josef Hardi',
       author_email='johardi@stanford.edu',
       url='https://github.com/hubmapconsortium/rui2ccf',
-      license='GPL-3.0',
+      license='BSD',
       classifiers=classifiers,
       install_requires=[
           'rdflib==6.0.1',
