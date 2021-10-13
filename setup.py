@@ -27,7 +27,7 @@ setup(name='rui2ccf',
       license='BSD',
       classifiers=classifiers,
       install_requires=[
-          'rdflib==6.0.1',
+          'rdflib==5.0.0',
           'stringcase==1.2.0',
           'requests_file==1.5.1'
       ],
