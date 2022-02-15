@@ -1,5 +1,5 @@
 from rdflib.term import URIRef
-from rui2ccf.namespace import DefinedNamespace, Namespace
+from spatial2ccf.namespace import DefinedNamespace, Namespace
 
 
 class CCF(DefinedNamespace):

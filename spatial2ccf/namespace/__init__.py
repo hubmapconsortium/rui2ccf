@@ -124,5 +124,5 @@ class DefinedNamespace(metaclass=DefinedNamespaceMeta):
     def __init__(self):
         raise TypeError("namespace may not be instantiated")
 
-from rui2ccf.namespace._CCF import CCF
-from rui2ccf.namespace._OBO import OBO
+from spatial2ccf.namespace._CCF import CCF
+from spatial2ccf.namespace._OBO import OBO

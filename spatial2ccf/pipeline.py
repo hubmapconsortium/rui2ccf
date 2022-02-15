@@ -1,6 +1,6 @@
 import requests
 from requests_file import FileAdapter
-from rui2ccf.ontology import SPOntology
+from spatial2ccf.ontology import SPOntology
 
 
 def run(args):

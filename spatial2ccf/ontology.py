@@ -1,10 +1,10 @@
 import re
 
-from rui2ccf.namespace import CCF
+from spatial2ccf.namespace import CCF
 
 from rdflib import Graph, URIRef, Literal
-from rdflib import OWL, XSD, RDF, RDFS, DC, DCTERMS
-from rdflib.extras.infixowl import Ontology, Class, Property, BNode
+from rdflib import OWL, XSD, RDF, DC, DCTERMS
+from rdflib.extras.infixowl import Ontology, Class, Property
 
 
 class SPOntology:

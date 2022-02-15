@@ -2,7 +2,7 @@ from distutils.core import setup
 
 from setuptools import find_packages
 
-from rui2ccf import __version__
+from spatial2ccf import __version__
 
 classifiers = """
 Development Status :: 5 - Production/Stable
@@ -18,12 +18,12 @@ Programming Language :: Python :: 3.8
 Operating System :: POSIX :: Linux
 """.strip().split('\n')
 
-setup(name='rui2ccf',
+setup(name='spatial2ccf',
       version=__version__,
-      description='A Python tool to convert RUI objects to CCF Spatial Ontology (CCF-SO)',
+      description='A Python tool to convert spatial objects to CCF Spatial Data (CCF-SPO) Ontology',
       author='Josef Hardi',
       author_email='johardi@stanford.edu',
-      url='https://github.com/hubmapconsortium/rui2ccf',
+      url='https://github.com/hubmapconsortium/spatial2ccf',
       license='BSD',
       classifiers=classifiers,
       install_requires=[
@@ -36,4 +36,4 @@ setup(name='rui2ccf',
       tests_require=['nose'],
       packages=find_packages(),
       include_package_data=True,
-      scripts=['bin/rui2ccf'])
+      scripts=['bin/spatial2ccf'])
