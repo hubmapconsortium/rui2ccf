@@ -170,7 +170,6 @@ class SPOntology:
                            reference_organ))
 
         if representation_of is not None:
-            
             self.graph.add((subject, CCF.representation_of, representation_of))
 
         if extraction_set is not None:
@@ -312,7 +311,7 @@ class SPOntology:
             return None
 
     def _expand_instance_id(self, str):
-        return URIRef(CCF._NS + "ccf.owl#" + str[1:])
+        return URIRef(CCF._NS + "latest/ccf.owl#" + str[1:])
 
     def _expand_anatomical_entity_id(self, str):
         if "obo:" in str:
