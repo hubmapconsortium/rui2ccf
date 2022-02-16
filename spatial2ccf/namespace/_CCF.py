@@ -45,6 +45,7 @@ class CCF(DefinedNamespace):
     x_rotation: URIRef
     y_rotation: URIRef
     z_rotation: URIRef
+    rotation_order: URIRef
     rotation_unit: URIRef
     x_translation: URIRef
     y_translation: URIRef
@@ -56,6 +57,7 @@ class CCF(DefinedNamespace):
     file_format: URIRef
     rui_rank: URIRef
     representation_of: URIRef
+    in_proximity_of: URIRef
 
     # http://www.w3.org/2002/07/owl#AnnotationProperty
     unit_of_measurement: URIRef
@@ -69,4 +71,4 @@ class CCF(DefinedNamespace):
     spatial_placement: URIRef
     biomarker: URIRef
 
-    _NS = Namespace("https://purl.org/ccf/")
+    _NS = Namespace("http://purl.org/ccf/")

@@ -12,7 +12,7 @@ def run(args):
     o = SPOntology.new(args.ontology_iri)
     for url in args.input_url:
         response = session.get(url)
-        records = response.json()
-        o = o.mutate(records)
+        data = response.json()
+        o = o.mutate(data)
 
     o.serialize(args.output)
