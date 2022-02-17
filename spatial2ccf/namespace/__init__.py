@@ -125,4 +125,3 @@ class DefinedNamespace(metaclass=DefinedNamespaceMeta):
         raise TypeError("namespace may not be instantiated")
 
 from spatial2ccf.namespace._CCF import CCF
-from spatial2ccf.namespace._OBO import OBO

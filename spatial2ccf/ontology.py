@@ -4,7 +4,7 @@ from spatial2ccf.namespace import CCF
 
 from rdflib import Graph, URIRef, Literal
 from rdflib import OWL, XSD, RDF, DC, DCTERMS
-from rdflib.extras.infixowl import Ontology, Class, Property
+from rdflib.extras.infixowl import Ontology, Property
 
 
 class SPOntology:
@@ -27,44 +27,13 @@ class SPOntology:
         Ontology(identifier=URIRef(ontology_iri), graph=g)
 
         # Declaration axioms
-        Property(CCF.belongs_to_extraction_set, baseType=OWL.ObjectProperty, graph=g)
+        Property(CCF.has_extraction_set, baseType=OWL.ObjectProperty, graph=g)
         Property(CCF.extraction_set_for, baseType=OWL.ObjectProperty, graph=g)
-        Property(CCF.has_placement_target, baseType=OWL.ObjectProperty, graph=g)
+        Property(CCF.placement_for, baseType=OWL.ObjectProperty, graph=g)
         Property(CCF.has_reference_organ, baseType=OWL.ObjectProperty, graph=g)
         Property(CCF.has_object_reference, baseType=OWL.ObjectProperty, graph=g)
         Property(CCF.has_placement, baseType=OWL.ObjectProperty, graph=g)
-
-        Property(CCF.title, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.creator_first_name, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.creator_last_name, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.creator_orcid, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.creation_date, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.organ_owner_sex, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.organ_side, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.x_dimension, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.y_dimension, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.z_dimension, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.dimension_unit, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.x_scaling, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.y_scaling, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.z_scaling, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.scaling_unit, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.x_rotation, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.y_rotation, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.z_rotation, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.rotation_order, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.rotation_unit, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.x_translation, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.y_translation, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.z_translation, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.translation_unit, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.file_url, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.file_name, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.file_subpath, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.file_format, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.rui_rank, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.representation_of, baseType=OWL.DatatypeProperty, graph=g)
-        Property(CCF.in_proximity_of, baseType=OWL.DatatypeProperty, graph=g)
+        Property(CCF.represents_bbox_of, baseType=OWL.ObjectProperty, graph=g)
 
         return SPOntology(g)
 
@@ -79,50 +48,47 @@ class SPOntology:
         return SPOntology(self.graph)
 
     def _mutate_rui(self, data):
-        for obj in data:
-            self._parse_object(obj)
+        for spatial_object in data:
+            self._add_spatial_object(spatial_object)
 
     def _mutate_specimen(self, graph):
-        for obj in graph:
-            if 'samples' in obj:
-                for sample in obj['samples']:
-                    if 'rui_location' in sample:
-                        self._parse_object(sample['rui_location'])
+        for graph_data in graph:
+            if 'samples' in graph_data:
+                self._mutate_samples(graph_data['samples'])
 
-    def _parse_object(self, obj):
+    def _mutate_samples(self, samples):
+        for sample in samples:
+            if 'rui_location' in sample:
+                spatial_object = sample['rui_location']
+                spatial_object_iri = self._iri(spatial_object['@id'])
+                sample_id = self._iri(sample['@id'])
+                self.graph.add((spatial_object_iri,
+                                CCF.represents_bbox_of,
+                                sample_id))
+                self._add_spatial_object(spatial_object)
+
+    def _add_spatial_object(self, obj):
         object_type = obj['@type']
-        if object_type == "ExtractionSet":
-            self._add_extraction_set(obj)
-        elif object_type == "SpatialEntity":
+        if object_type == "SpatialEntity":
             self._add_spatial_entity(obj)
-            if 'object' in obj:
-                object_reference = obj['object']
-                self._add_object_reference(object_reference)
-                if 'placement' in object_reference:
-                    object_placement = object_reference['placement']
-                    self._add_object_placement(object_placement)
-            if 'placement' in obj:
-                if isinstance(obj['placement'], list):
-                    for object_placement in obj['placement']:
-                        self._add_object_placement(object_placement)
-                else:
-                    self._add_object_placement(obj['placement'])
         elif object_type == "SpatialPlacement":
             self._add_object_placement(obj)
+        elif object_type == "ExtractionSet":
+            self._add_extraction_set(obj)
 
     def _add_extraction_set(self, obj):
         self._add_extraction_set_to_graph(
             self._expand_instance_id(obj['@id']),
-            self._string(obj['label']),
+            self._string(obj['label']),  # consortium name
             self._expand_instance_id(obj['extraction_set_for']),
             self._integer(obj['rui_rank']))
 
-    def _add_extraction_set_to_graph(self, subject, label, reference_organ,
-                                     rui_rank):
+    def _add_extraction_set_to_graph(self, subject, consortium_name,
+                                     reference_organ_iri, rui_rank):
         self.graph.add((subject, RDF.type, OWL.NamedIndividual))
         self.graph.add((subject, RDF.type, CCF.extraction_set))
-        self.graph.add((subject, CCF.title, label))
-        self.graph.add((subject, CCF.extraction_set_for, reference_organ))
+        self.graph.add((subject, CCF.consortium_name, consortium_name))
+        self.graph.add((subject, CCF.extraction_set_for, reference_organ_iri))
         self.graph.add((subject, CCF.rui_rank, rui_rank))
 
     def _add_spatial_entity(self, obj):
@@ -147,132 +113,162 @@ class SPOntology:
             self._get_extraction_set(obj),
             self._get_rui_rank(obj))
 
-    def _add_spatial_entity_to_graph(self, subject, label, creator_first_name,
-                                     creator_last_name, creator_orcid,
-                                     creation_date, annotations,
+        if 'object' in obj:
+            self._add_object_reference(obj['object'])
+        if 'placement' in obj:
+            if isinstance(obj['placement'], list):
+                self._add_object_placements(obj['placement'])
+            else:
+                self._add_object_placement(obj['placement'])
+
+    def _add_spatial_entity_to_graph(self, spatial_entity_id, label,
+                                     creator_first_name, creator_last_name,
+                                     creator_orcid, creation_date, annotations,
                                      x_dimension, y_dimension, z_dimension,
-                                     dimension_unit,
-                                     organ_owner_sex, organ_side,
-                                     object_reference, object_placements,
-                                     reference_organ, representation_of,
-                                     extraction_set, rui_rank):
-        self.graph.add((subject, RDF.type, OWL.NamedIndividual))
-        self.graph.add((subject, RDF.type, CCF.spatial_entity))
+                                     dimension_unit, organ_owner_sex,
+                                     organ_side, object_reference,
+                                     object_placements, reference_organ,
+                                     representation_of, extraction_set,
+                                     rui_rank):
+        self.graph.add((spatial_entity_id, RDF.type, OWL.NamedIndividual))
+        self.graph.add((spatial_entity_id, RDF.type, CCF.spatial_entity))
+
         if label is not None:
-            self.graph.add((subject, CCF.title, label))
-        self.graph.add((subject, CCF.creator_first_name, creator_first_name))
-        self.graph.add((subject, CCF.creator_last_name, creator_last_name))
+            self.graph.add((spatial_entity_id, DCTERMS.title, label))
+
+        self.graph.add((spatial_entity_id, CCF.creator_first_name,
+                        creator_first_name))
+        self.graph.add((spatial_entity_id, CCF.creator_last_name,
+                        creator_last_name))
+        self.graph.add((spatial_entity_id, DCTERMS.creator,
+                        Literal(str(creator_first_name) + " " +
+                                str(creator_last_name))))
         if creator_orcid is not None:
-            self.graph.add((subject, CCF.creator_orcid, creator_orcid))
-        self.graph.add((subject, CCF.creation_date, creation_date))
+            self.graph.add((spatial_entity_id, CCF.creator_orcid,
+                            creator_orcid))
+        self.graph.add((spatial_entity_id, DCTERMS.created, creation_date))
 
         if annotations is not None:
             for annotation in annotations:
-                self.graph.add((subject, CCF.in_proximity_of, annotation))
+                self.graph.add((spatial_entity_id, CCF.in_proximity_with,
+                                annotation))
 
-        self.graph.add((subject, CCF.x_dimension, x_dimension))
-        self.graph.add((subject, CCF.y_dimension, y_dimension))
-        self.graph.add((subject, CCF.z_dimension, z_dimension))
-        self.graph.add((subject, CCF.dimension_unit, Literal("millimeter")))
+        self.graph.add((spatial_entity_id, CCF.x_dimension, x_dimension))
+        self.graph.add((spatial_entity_id, CCF.y_dimension, y_dimension))
+        self.graph.add((spatial_entity_id, CCF.z_dimension, z_dimension))
+        self.graph.add((spatial_entity_id, CCF.dimension_unit,
+                        self._string(dimension_unit)))
 
         if organ_owner_sex is not None:
-            self.graph.add((subject, CCF.organ_owner_sex, organ_owner_sex))
+            self.graph.add((spatial_entity_id, CCF.organ_owner_sex,
+                            organ_owner_sex))
 
         if organ_side is not None:
-            self.graph.add((subject, CCF.organ_side, organ_side))
+            self.graph.add((spatial_entity_id, CCF.organ_side, organ_side))
 
         if object_reference is not None:
-            self.graph.add((subject, CCF.has_object_reference,
+            self.graph.add((spatial_entity_id, CCF.has_object_reference,
                            object_reference))
 
         if object_placements is not None:
             for object_placement in object_placements:
-                self.graph.add((subject, CCF.has_placement, object_placement))
+                self.graph.add((spatial_entity_id, CCF.has_placement,
+                                object_placement))
 
         if reference_organ is not None:
-            self.graph.add((subject, CCF.has_reference_organ,
+            self.graph.add((spatial_entity_id, CCF.has_reference_organ,
                            reference_organ))
 
         if representation_of is not None:
-            self.graph.add((subject, CCF.representation_of, representation_of))
+            self.graph.add((spatial_entity_id, CCF.representation_of,
+                            representation_of))
 
         if extraction_set is not None:
-            self.graph.add((subject, CCF.belongs_to_extraction_set,
+            self.graph.add((spatial_entity_id, CCF.has_extraction_set,
                            extraction_set))
 
         if rui_rank is not None:
-            self.graph.add((subject, CCF.rui_rank, rui_rank))
+            self.graph.add((spatial_entity_id, CCF.rui_rank, rui_rank))
 
-    def _add_object_reference(self, obj):
+    def _add_object_reference(self, object_reference):
         self._add_object_reference_to_graph(
-            self._expand_instance_id(obj['@id']),
-            self._string(obj['file']),
-            self._string(obj['file_format']),
-            self._get_file_subpath(obj),
-            self._get_object_placement_id(obj['placement']))
+            self._expand_instance_id(object_reference['@id']),
+            self._string(object_reference['file']),
+            self._string(object_reference['file_format']),
+            self._get_file_subpath(object_reference),
+            self._get_object_placement_id(object_reference['placement']))
+        if 'placement' in object_reference:
+            object_placement = object_reference['placement']
+            self._add_object_placement(object_placement)
 
-    def _add_object_reference_to_graph(self, subject, file_url, file_format,
+    def _add_object_reference_to_graph(self, obj_ref_id, file_url, file_format,
                                        file_subpath, object_placement):
-        self.graph.add((subject, RDF.type, OWL.NamedIndividual))
-        self.graph.add((subject, RDF.type, CCF.spatial_object_reference))
-        self.graph.add((subject, CCF.file_url, file_url))
+        self.graph.add((obj_ref_id, RDF.type, OWL.NamedIndividual))
+        self.graph.add((obj_ref_id, RDF.type, CCF.spatial_object_reference))
+        self.graph.add((obj_ref_id, CCF.file_url, file_url))
         file_name = file_url.split("/")[-1]
-        self.graph.add((subject, CCF.file_name, self._string(file_name)))
-        self.graph.add((subject, CCF.file_format, file_format))
+        self.graph.add((obj_ref_id, CCF.file_name, self._string(file_name)))
+        self.graph.add((obj_ref_id, CCF.file_format, file_format))
         if file_subpath is not None:
-            self.graph.add((subject, CCF.file_subpath, file_subpath))
+            self.graph.add((obj_ref_id, CCF.file_subpath, file_subpath))
         if object_placement is not None:
-            self.graph.add((subject, CCF.has_placement, object_placement))
+            self.graph.add((obj_ref_id, CCF.has_placement, object_placement))
 
-    def _add_object_placement(self, obj):
+    def _add_object_placements(self, object_placements):
+        for object_placement in object_placements:
+            self._add_object_placement(object_placement)
+
+    def _add_object_placement(self, object_placement):
         self._add_object_placement_to_graph(
-            self._expand_instance_id(obj['@id']),
-            self._expand_instance_id(obj['target']),
-            self._decimal(obj['x_scaling']),
-            self._decimal(obj['y_scaling']),
-            self._decimal(obj['z_scaling']),
-            self._string(obj['scaling_units']),
-            self._decimal(obj['x_rotation']),
-            self._decimal(obj['y_rotation']),
-            self._decimal(obj['z_rotation']),
-            self._string(obj['rotation_units']),
-            self._get_rotation_order(obj),
-            self._decimal(obj['x_translation']),
-            self._decimal(obj['y_translation']),
-            self._decimal(obj['z_translation']),
-            self._string(obj['translation_units']),
-            self._date(obj['placement_date']))
+            self._expand_instance_id(object_placement['@id']),
+            self._expand_instance_id(object_placement['target']),
+            self._decimal(object_placement['x_scaling']),
+            self._decimal(object_placement['y_scaling']),
+            self._decimal(object_placement['z_scaling']),
+            self._string(object_placement['scaling_units']),
+            self._decimal(object_placement['x_rotation']),
+            self._decimal(object_placement['y_rotation']),
+            self._decimal(object_placement['z_rotation']),
+            self._string(object_placement['rotation_units']),
+            self._get_rotation_order(object_placement),
+            self._decimal(object_placement['x_translation']),
+            self._decimal(object_placement['y_translation']),
+            self._decimal(object_placement['z_translation']),
+            self._string(object_placement['translation_units']),
+            self._date(object_placement['placement_date']))
 
-    def _add_object_placement_to_graph(self, subject, spatial_entity,
-                                       x_scaling, y_scaling, z_scaling,
-                                       scaling_unit,
+    def _add_object_placement_to_graph(self, obj_pmnt_id, spatial_entity_id,
+                                       x_scaling, y_scaling,
+                                       z_scaling, scaling_unit,
                                        x_rotation, y_rotation, z_rotation,
                                        rotation_unit, rotation_order,
                                        x_translation, y_translation,
                                        z_translation, translation_unit,
                                        placement_date):
-        self.graph.add((subject, RDF.type, OWL.NamedIndividual))
-        self.graph.add((subject, CCF.creation_date, placement_date))
+        self.graph.add((obj_pmnt_id, RDF.type, OWL.NamedIndividual))
+        self.graph.add((obj_pmnt_id, RDF.type, CCF.spatial_placement))
 
-        self.graph.add((subject, RDF.type, CCF.spatial_placement))
-        self.graph.add((subject, CCF.has_placement_target, spatial_entity))
+        self.graph.add((spatial_entity_id, RDF.type, CCF.spatial_entity))
+        self.graph.add((obj_pmnt_id, CCF.placement_for, spatial_entity_id))
 
-        self.graph.add((subject, CCF.x_scaling, x_scaling))
-        self.graph.add((subject, CCF.y_scaling, y_scaling))
-        self.graph.add((subject, CCF.z_scaling, z_scaling))
-        self.graph.add((subject, CCF.scaling_unit, scaling_unit))
+        self.graph.add((obj_pmnt_id, CCF.x_scaling, x_scaling))
+        self.graph.add((obj_pmnt_id, CCF.y_scaling, y_scaling))
+        self.graph.add((obj_pmnt_id, CCF.z_scaling, z_scaling))
+        self.graph.add((obj_pmnt_id, CCF.scaling_unit, scaling_unit))
 
-        self.graph.add((subject, CCF.x_rotation, x_rotation))
-        self.graph.add((subject, CCF.y_rotation, y_rotation))
-        self.graph.add((subject, CCF.z_rotation, z_rotation))
-        self.graph.add((subject, CCF.rotation_unit, rotation_unit))
+        self.graph.add((obj_pmnt_id, CCF.x_rotation, x_rotation))
+        self.graph.add((obj_pmnt_id, CCF.y_rotation, y_rotation))
+        self.graph.add((obj_pmnt_id, CCF.z_rotation, z_rotation))
+        self.graph.add((obj_pmnt_id, CCF.rotation_unit, rotation_unit))
         if rotation_order is not None:
-            self.graph.add((subject, CCF.rotation_order, rotation_order))
+            self.graph.add((obj_pmnt_id, CCF.rotation_order, rotation_order))
 
-        self.graph.add((subject, CCF.x_translation, x_translation))
-        self.graph.add((subject, CCF.y_translation, y_translation))
-        self.graph.add((subject, CCF.z_translation, z_translation))
-        self.graph.add((subject, CCF.translation_unit, translation_unit))
+        self.graph.add((obj_pmnt_id, CCF.x_translation, x_translation))
+        self.graph.add((obj_pmnt_id, CCF.y_translation, y_translation))
+        self.graph.add((obj_pmnt_id, CCF.z_translation, z_translation))
+        self.graph.add((obj_pmnt_id, CCF.translation_unit, translation_unit))
+
+        self.graph.add((obj_pmnt_id, DCTERMS.created, placement_date))
 
     def _get_label(self, obj):
         try:
@@ -323,9 +319,11 @@ class SPOntology:
 
     def _expand_instance_id(self, id_string):
         if "http://" not in id_string:
-            return URIRef(CCF._NS + "latest/ccf.owl#" + id_string[1:])
+            if id_string[0] == "#":
+                id_string = id_string[1:]
+            return self._iri(CCF._NS + "latest/ccf.owl#" + id_string)
         else:
-            return URIRef(id_string)
+            return self._iri(id_string)
 
     def _get_representation_of(self, obj):
         try:
@@ -396,6 +394,9 @@ class SPOntology:
                 "http://purl.org/sig/ont/fma/fma", str)
         else:
             return str
+
+    def _iri(self, str):
+        return URIRef(str)
 
     def _string(self, str):
         return Literal(str)

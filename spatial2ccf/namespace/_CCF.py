@@ -19,19 +19,21 @@ class CCF(DefinedNamespace):
     is_protein_marker_of: URIRef
     has_characterizing_biomarker_set: URIRef
     is_characterizing_biomarker_set_of: URIRef
-    belongs_to_extraction_set: URIRef
+    has_extraction_set: URIRef
     extraction_set_for: URIRef
-    has_placement_target: URIRef
+    placement_for: URIRef
     has_reference_organ: URIRef
     has_object_reference: URIRef
     has_placement: URIRef
+    represents_bbox_of: URIRef
 
     # http://www.w3.org/2002/07/owl#DataProperty
-    title: URIRef
+
+    # http://www.w3.org/2002/07/owl#AnnotationProperty
+    consortium_name: URIRef
     creator_first_name: URIRef
     creator_last_name: URIRef
     creator_orcid: URIRef
-    creation_date: URIRef
     organ_owner_sex: URIRef
     organ_side: URIRef
     x_dimension: URIRef
@@ -57,11 +59,7 @@ class CCF(DefinedNamespace):
     file_format: URIRef
     rui_rank: URIRef
     representation_of: URIRef
-    in_proximity_of: URIRef
-
-    # http://www.w3.org/2002/07/owl#AnnotationProperty
-    unit_of_measurement: URIRef
-    is_ftu: URIRef
+    in_proximity_with: URIRef
 
     # http://www.w3.org/2002/07/owl#Class
     characterizing_biomarker_set: URIRef

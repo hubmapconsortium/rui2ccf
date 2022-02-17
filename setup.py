@@ -20,7 +20,7 @@ Operating System :: POSIX :: Linux
 
 setup(name='spatial2ccf',
       version=__version__,
-      description='A Python tool to convert spatial objects to CCF Spatial Data (CCF-SPO) Ontology',
+      description='A Python tool to convert spatial objects to CCF Spatial Ontology (CCF-SPO) instances',
       author='Josef Hardi',
       author_email='johardi@stanford.edu',
       url='https://github.com/hubmapconsortium/spatial2ccf',
