@@ -150,7 +150,7 @@ class SPOntology:
 
         if annotations is not None:
             for annotation in annotations:
-                self.graph.add((spatial_entity_id, CCF.in_proximity_with,
+                self.graph.add((spatial_entity_id, CCF.collides_with,
                                 annotation))
 
         self.graph.add((spatial_entity_id, CCF.x_dimension, x_dimension))

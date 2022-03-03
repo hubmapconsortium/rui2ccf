@@ -55,7 +55,7 @@ class CCF(DefinedNamespace):
     file_format: URIRef
     rui_rank: URIRef
     representation_of: URIRef
-    in_proximity_with: URIRef
+    collides_with: URIRef
 
     # http://www.w3.org/2002/07/owl#Class
     characterizing_biomarker_set: URIRef
