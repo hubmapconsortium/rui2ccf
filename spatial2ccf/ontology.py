@@ -42,40 +42,46 @@ class SPOntology:
         """
         """
         if isinstance(data, list):
-            self._mutate_rui(data)
+            for obj in data:
+                object_type = obj['@type']
+                if object_type == "SpatialEntity":
+                    self._add_spatial_entity(obj)
+                elif object_type == "SpatialPlacement":
+                    self._add_spatial_placement(obj)
+                elif object_type == "ExtractionSet":
+                    self._add_extraction_set(obj)
+                elif object_type == "Donor":
+                    self._add_sample_registration_location(obj)
+                else:
+                    raise ValueError("Unknown object_type <" +
+                                     object_type + ">")
         elif isinstance(data, dict):
-            if '@graph' in data:
-                self._mutate_specimen(data['@graph'])
+            for obj in data['@graph']:
+                object_type = obj['@type']
+                if object_type == "Donor":
+                    self._add_sample_registration_location(obj)
+                else:
+                    raise ValueError("Unknown object_type <" +
+                                     object_type + ">")
         return SPOntology(self.graph)
 
-    def _mutate_rui(self, data):
-        for spatial_object in data:
-            self._add_spatial_object(spatial_object)
-
-    def _mutate_specimen(self, graph):
-        for graph_data in graph:
-            if 'samples' in graph_data:
-                self._mutate_samples(graph_data['samples'])
-
-    def _mutate_samples(self, samples):
-        for sample in samples:
-            if 'rui_location' in sample:
-                spatial_object = sample['rui_location']
-                spatial_object_iri = self._iri(spatial_object['@id'])
+    def _add_sample_registration_location(self, obj):
+        publisher = self._get_publisher(obj)
+        if 'samples' in obj:
+            for sample in obj['samples']:
+                if 'rui_location' not in sample:
+                    continue
                 sample_id = self._iri(sample['@id'])
-                self.graph.add((spatial_object_iri,
-                                CCF.represents_bbox_of,
-                                sample_id))
-                self._add_spatial_object(spatial_object)
+                registration_location = sample['rui_location']
+                self._add_registration_location(sample_id,
+                                                registration_location,
+                                                publisher)
 
-    def _add_spatial_object(self, obj):
-        object_type = obj['@type']
-        if object_type == "SpatialEntity":
-            self._add_spatial_entity(obj)
-        elif object_type == "SpatialPlacement":
-            self._add_spatial_placement(obj)
-        elif object_type == "ExtractionSet":
-            self._add_extraction_set(obj)
+    def _add_registration_location(self, sample_id, registration_location,
+                                   publisher):
+        reg_location_iri = self._iri(registration_location['@id'])
+        self.graph.add((reg_location_iri, CCF.represents_bbox_of, sample_id))
+        self._add_spatial_entity(registration_location, publisher)
 
     def _add_extraction_set(self, obj):
         self._add_extraction_set_to_graph(
@@ -92,7 +98,7 @@ class SPOntology:
         self.graph.add((subject, CCF.extraction_set_for, reference_organ_iri))
         self.graph.add((subject, CCF.rui_rank, rui_rank))
 
-    def _add_spatial_entity(self, obj):
+    def _add_spatial_entity(self, obj, publisher=None):
         spatial_entity_id = self._expand_instance_id(obj['@id'])
         self._add_spatial_entity_to_graph(
             spatial_entity_id,
@@ -113,17 +119,20 @@ class SPOntology:
             self._get_reference_organ(obj),
             self._get_representation_of(obj),
             self._get_extraction_set(obj),
-            self._get_rui_rank(obj))
+            self._get_rui_rank(obj),
+            publisher)
 
         if 'object' in obj:
+            # Only RUI data have 'spatial object reference' information
             self._add_object_reference(obj['object'])
         if 'placement' in obj:
-            if isinstance(obj['placement'], list):
-                self._add_spatial_placements(obj['placement'],
-                                             spatial_entity_id)
-            else:
-                self._add_spatial_placement(obj['placement'],
-                                            spatial_entity_id)
+            object_placements = obj['placement']
+            if isinstance(object_placements, dict):
+                object_placements = [object_placements]
+            for object_placement in object_placements:
+                self._add_spatial_placement(object_placement,
+                                            spatial_entity_id,
+                                            publisher)
 
     def _add_spatial_entity_to_graph(self, spatial_entity_id, label,
                                      creator_first_name, creator_last_name,
@@ -133,11 +142,11 @@ class SPOntology:
                                      organ_side, object_reference,
                                      object_placements, reference_organ,
                                      representation_of, extraction_set,
-                                     rui_rank):
+                                     rui_rank, publisher):
         self.graph.add((spatial_entity_id, RDF.type, OWL.NamedIndividual))
         self.graph.add((spatial_entity_id, RDF.type, CCF.spatial_entity))
 
-        if label is not None:
+        if label:
             self.graph.add((spatial_entity_id, DCTERMS.title, label))
 
         self.graph.add((spatial_entity_id, CCF.creator_first_name,
@@ -147,12 +156,12 @@ class SPOntology:
         self.graph.add((spatial_entity_id, DCTERMS.creator,
                         Literal(str(creator_first_name) + " " +
                                 str(creator_last_name))))
-        if creator_orcid is not None:
+        if creator_orcid:
             self.graph.add((spatial_entity_id, CCF.creator_orcid,
                             creator_orcid))
         self.graph.add((spatial_entity_id, DCTERMS.created, creation_date))
 
-        if annotations is not None:
+        if annotations:
             for annotation in annotations:
                 self.graph.add((spatial_entity_id, CCF.collides_with,
                                 annotation))
@@ -160,39 +169,35 @@ class SPOntology:
         self.graph.add((spatial_entity_id, CCF.x_dimension, x_dimension))
         self.graph.add((spatial_entity_id, CCF.y_dimension, y_dimension))
         self.graph.add((spatial_entity_id, CCF.z_dimension, z_dimension))
-        self.graph.add((spatial_entity_id, CCF.dimension_unit,
-                        self._string(dimension_unit)))
+        self.graph.add((spatial_entity_id, CCF.dimension_unit, dimension_unit))
 
-        if organ_owner_sex is not None:
+        if organ_owner_sex:
             self.graph.add((spatial_entity_id, CCF.organ_owner_sex,
                             organ_owner_sex))
-
-        if organ_side is not None:
+        if organ_side:
             self.graph.add((spatial_entity_id, CCF.organ_side, organ_side))
 
-        if object_reference is not None:
+        if object_reference:
             self.graph.add((spatial_entity_id, CCF.has_object_reference,
                            object_reference))
-
-        if object_placements is not None:
+        if object_placements:
             for object_placement in object_placements:
                 self.graph.add((spatial_entity_id, CCF.has_placement,
                                 object_placement))
-
-        if reference_organ is not None:
+        if reference_organ:
             self.graph.add((spatial_entity_id, CCF.has_reference_organ,
                            reference_organ))
-
-        if representation_of is not None:
+        if representation_of:
             self.graph.add((spatial_entity_id, CCF.representation_of,
                             representation_of))
-
-        if extraction_set is not None:
+        if extraction_set:
             self.graph.add((spatial_entity_id, CCF.has_extraction_set,
                            extraction_set))
-
-        if rui_rank is not None:
+        if rui_rank:
             self.graph.add((spatial_entity_id, CCF.rui_rank, rui_rank))
+
+        if publisher:
+            self.graph.add((spatial_entity_id, DCTERMS.publisher, publisher))
 
     def _add_object_reference(self, object_reference):
         obj_ref_id = self._expand_instance_id(object_reference['@id'])
@@ -214,16 +219,13 @@ class SPOntology:
         file_name = file_url.split("/")[-1]
         self.graph.add((obj_ref_id, CCF.file_name, self._string(file_name)))
         self.graph.add((obj_ref_id, CCF.file_format, file_format))
-        if file_subpath is not None:
+        if file_subpath:
             self.graph.add((obj_ref_id, CCF.file_subpath, file_subpath))
-        if object_placement is not None:
+        if object_placement:
             self.graph.add((obj_ref_id, CCF.has_placement, object_placement))
 
-    def _add_spatial_placements(self, object_placements, source_spatial_id):
-        for object_placement in object_placements:
-            self._add_spatial_placement(object_placement, source_spatial_id)
-
-    def _add_spatial_placement(self, object_placement, source_spatial_id=None):
+    def _add_spatial_placement(self, object_placement, source_spatial_id=None,
+                               publisher=None):
         if not source_spatial_id:
             source_spatial_id = self._get_source_placement(object_placement)
         self._add_object_placement_to_graph(
@@ -243,7 +245,8 @@ class SPOntology:
             self._decimal(object_placement['y_translation']),
             self._decimal(object_placement['z_translation']),
             self._string(object_placement['translation_units']),
-            self._date(object_placement['placement_date']))
+            self._date(object_placement['placement_date']),
+            publisher)
 
     def _add_object_placement_to_graph(self, obj_pmnt_id,
                                        target_spatial_id,
@@ -254,7 +257,7 @@ class SPOntology:
                                        rotation_unit, rotation_order,
                                        x_translation, y_translation,
                                        z_translation, translation_unit,
-                                       placement_date):
+                                       placement_date, publisher):
         self.graph.add((obj_pmnt_id, RDF.type, OWL.NamedIndividual))
         self.graph.add((obj_pmnt_id, RDF.type, CCF.spatial_placement))
         self.graph.add((obj_pmnt_id, CCF.placement_for,
@@ -271,7 +274,7 @@ class SPOntology:
         self.graph.add((obj_pmnt_id, CCF.y_rotation, y_rotation))
         self.graph.add((obj_pmnt_id, CCF.z_rotation, z_rotation))
         self.graph.add((obj_pmnt_id, CCF.rotation_unit, rotation_unit))
-        if rotation_order is not None:
+        if rotation_order:
             self.graph.add((obj_pmnt_id, CCF.rotation_order, rotation_order))
 
         self.graph.add((obj_pmnt_id, CCF.x_translation, x_translation))
@@ -280,6 +283,14 @@ class SPOntology:
         self.graph.add((obj_pmnt_id, CCF.translation_unit, translation_unit))
 
         self.graph.add((obj_pmnt_id, DCTERMS.created, placement_date))
+        if publisher:
+            self.graph.add((obj_pmnt_id, DCTERMS.publisher, publisher))
+
+    def _get_publisher(self, obj):
+        try:
+            return self._string(obj['consortium_name'])
+        except KeyError:
+            return None
 
     def _get_target_placement(self, obj):
         try:
