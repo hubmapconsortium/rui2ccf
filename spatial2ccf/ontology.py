@@ -30,6 +30,7 @@ class SPOntology:
         Property(CCF.has_extraction_set, baseType=OWL.ObjectProperty, graph=g)
         Property(CCF.extraction_set_for, baseType=OWL.ObjectProperty, graph=g)
         Property(CCF.placement_for, baseType=OWL.ObjectProperty, graph=g)
+        Property(CCF.placement_relative_to, baseType=OWL.ObjectProperty, graph=g)
         Property(CCF.has_reference_organ, baseType=OWL.ObjectProperty, graph=g)
         Property(CCF.has_object_reference, baseType=OWL.ObjectProperty, graph=g)
         Property(CCF.has_placement, baseType=OWL.ObjectProperty, graph=g)
@@ -72,7 +73,7 @@ class SPOntology:
         if object_type == "SpatialEntity":
             self._add_spatial_entity(obj)
         elif object_type == "SpatialPlacement":
-            self._add_object_placement(obj)
+            self._add_spatial_placement(obj)
         elif object_type == "ExtractionSet":
             self._add_extraction_set(obj)
 
@@ -92,8 +93,9 @@ class SPOntology:
         self.graph.add((subject, CCF.rui_rank, rui_rank))
 
     def _add_spatial_entity(self, obj):
+        spatial_entity_id = self._expand_instance_id(obj['@id'])
         self._add_spatial_entity_to_graph(
-            self._expand_instance_id(obj['@id']),
+            spatial_entity_id,
             self._get_label(obj),
             self._string(obj['creator_first_name']),
             self._string(obj['creator_last_name']),
@@ -117,9 +119,11 @@ class SPOntology:
             self._add_object_reference(obj['object'])
         if 'placement' in obj:
             if isinstance(obj['placement'], list):
-                self._add_object_placements(obj['placement'])
+                self._add_spatial_placements(obj['placement'],
+                                             spatial_entity_id)
             else:
-                self._add_object_placement(obj['placement'])
+                self._add_spatial_placement(obj['placement'],
+                                            spatial_entity_id)
 
     def _add_spatial_entity_to_graph(self, spatial_entity_id, label,
                                      creator_first_name, creator_last_name,
@@ -191,15 +195,16 @@ class SPOntology:
             self.graph.add((spatial_entity_id, CCF.rui_rank, rui_rank))
 
     def _add_object_reference(self, object_reference):
+        obj_ref_id = self._expand_instance_id(object_reference['@id'])
         self._add_object_reference_to_graph(
-            self._expand_instance_id(object_reference['@id']),
+            obj_ref_id,
             self._string(object_reference['file']),
             self._string(object_reference['file_format']),
             self._get_file_subpath(object_reference),
             self._get_object_placement_id(object_reference['placement']))
         if 'placement' in object_reference:
             object_placement = object_reference['placement']
-            self._add_object_placement(object_placement)
+            self._add_spatial_placement(object_placement, obj_ref_id)
 
     def _add_object_reference_to_graph(self, obj_ref_id, file_url, file_format,
                                        file_subpath, object_placement):
@@ -214,14 +219,17 @@ class SPOntology:
         if object_placement is not None:
             self.graph.add((obj_ref_id, CCF.has_placement, object_placement))
 
-    def _add_object_placements(self, object_placements):
+    def _add_spatial_placements(self, object_placements, source_spatial_id):
         for object_placement in object_placements:
-            self._add_object_placement(object_placement)
+            self._add_spatial_placement(object_placement, source_spatial_id)
 
-    def _add_object_placement(self, object_placement):
+    def _add_spatial_placement(self, object_placement, source_spatial_id=None):
+        if not source_spatial_id:
+            source_spatial_id = self._get_source_placement(object_placement)
         self._add_object_placement_to_graph(
             self._expand_instance_id(object_placement['@id']),
-            self._expand_instance_id(object_placement['target']),
+            self._get_target_placement(object_placement),
+            source_spatial_id,
             self._decimal(object_placement['x_scaling']),
             self._decimal(object_placement['y_scaling']),
             self._decimal(object_placement['z_scaling']),
@@ -237,7 +245,9 @@ class SPOntology:
             self._string(object_placement['translation_units']),
             self._date(object_placement['placement_date']))
 
-    def _add_object_placement_to_graph(self, obj_pmnt_id, spatial_entity_id,
+    def _add_object_placement_to_graph(self, obj_pmnt_id,
+                                       target_spatial_id,
+                                       source_spatial_id,
                                        x_scaling, y_scaling,
                                        z_scaling, scaling_unit,
                                        x_rotation, y_rotation, z_rotation,
@@ -247,9 +257,10 @@ class SPOntology:
                                        placement_date):
         self.graph.add((obj_pmnt_id, RDF.type, OWL.NamedIndividual))
         self.graph.add((obj_pmnt_id, RDF.type, CCF.spatial_placement))
-
-        self.graph.add((spatial_entity_id, RDF.type, CCF.spatial_entity))
-        self.graph.add((obj_pmnt_id, CCF.placement_for, spatial_entity_id))
+        self.graph.add((obj_pmnt_id, CCF.placement_for,
+                        target_spatial_id))
+        self.graph.add((obj_pmnt_id, CCF.placement_relative_to,
+                        source_spatial_id))
 
         self.graph.add((obj_pmnt_id, CCF.x_scaling, x_scaling))
         self.graph.add((obj_pmnt_id, CCF.y_scaling, y_scaling))
@@ -269,6 +280,18 @@ class SPOntology:
         self.graph.add((obj_pmnt_id, CCF.translation_unit, translation_unit))
 
         self.graph.add((obj_pmnt_id, DCTERMS.created, placement_date))
+
+    def _get_target_placement(self, obj):
+        try:
+            return self._expand_instance_id(obj['target'])
+        except KeyError:
+            return None
+
+    def _get_source_placement(self, obj):
+        try:
+            return self._expand_instance_id(obj['source'])
+        except KeyError:
+            return self._expand_instance_id(obj['target'])
 
     def _get_label(self, obj):
         try:

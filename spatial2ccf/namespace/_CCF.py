@@ -18,6 +18,7 @@ class CCF(DefinedNamespace):
     has_extraction_set: URIRef
     extraction_set_for: URIRef
     placement_for: URIRef
+    placement_relative_to: URIRef
     has_reference_organ: URIRef
     has_object_reference: URIRef
     has_placement: URIRef
