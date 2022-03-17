@@ -107,7 +107,7 @@ class SPOntology:
             self._string(obj['creator_last_name']),
             self._get_creator_orcid(obj),
             self._date(obj['creation_date']),
-            self._get_annotations(obj),
+            self._get_collides_with_annotations(obj),
             self._decimal(obj['x_dimension']),
             self._decimal(obj['y_dimension']),
             self._decimal(obj['z_dimension']),
@@ -363,7 +363,7 @@ class SPOntology:
         try:
             entity_id = obj['representation_of']
             reference_of = self._expand_anatomical_entity_id(entity_id)
-            return self._string(reference_of)
+            return self._iri(reference_of)
         except KeyError:
             return None
 
@@ -403,31 +403,31 @@ class SPOntology:
         except KeyError:
             return None
 
-    def _get_annotations(self, obj):
+    def _get_collides_with_annotations(self, obj):
         try:
             arr = []
             for annotation in obj['ccf_annotations']:
-                arr.append(self._string(annotation))
+                arr.append(self._iri(annotation))
             return arr
         except KeyError:
             return None
 
     def _expand_anatomical_entity_id(self, str):
+        id_string = str
         if "obo:" in str:
             obo_pattern = re.compile("obo:", re.IGNORECASE)
-            return obo_pattern.sub(
+            id_string = obo_pattern.sub(
                 "http://purl.obolibrary.org/obo/", str)
         elif "UBERON:" in str:
             uberon_pattern = re.compile("CL:", re.IGNORECASE)
-            return uberon_pattern.sub(
+            id_string = uberon_pattern.sub(
                 "http://purl.obolibrary.org/obo/UBERON_", str)
         elif "http://purl.obolibrary.org/obo/FMA_" in str:
             fmaobo_pattern = re.compile(
                 "http://purl.obolibrary.org/obo/FMA_", re.IGNORECASE)
-            return fmaobo_pattern.sub(
+            id_string = fmaobo_pattern.sub(
                 "http://purl.org/sig/ont/fma/fma", str)
-        else:
-            return str
+        return self._iri(id_string)
 
     def _iri(self, str):
         return URIRef(str)
