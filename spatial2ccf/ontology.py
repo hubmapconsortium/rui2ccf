@@ -260,9 +260,9 @@ class SPOntology:
                                        placement_date, publisher):
         self.graph.add((obj_pmnt_id, RDF.type, OWL.NamedIndividual))
         self.graph.add((obj_pmnt_id, RDF.type, CCF.spatial_placement))
-        self.graph.add((obj_pmnt_id, CCF.placement_for,
-                        target_spatial_id))
         self.graph.add((obj_pmnt_id, CCF.placement_relative_to,
+                        target_spatial_id))
+        self.graph.add((obj_pmnt_id, CCF.placement_for,
                         source_spatial_id))
 
         self.graph.add((obj_pmnt_id, CCF.x_scaling, x_scaling))
