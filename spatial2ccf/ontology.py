@@ -3,7 +3,7 @@ import re
 from spatial2ccf.namespace import CCF
 
 from rdflib import Graph, URIRef, Literal
-from rdflib import OWL, XSD, RDF, DC, DCTERMS
+from rdflib import OWL, XSD, RDF, RDFS, DC, DCTERMS
 from rdflib.extras.infixowl import Ontology, Property
 
 
@@ -94,6 +94,7 @@ class SPOntology:
                                      reference_organ_iri, rui_rank):
         self.graph.add((subject, RDF.type, OWL.NamedIndividual))
         self.graph.add((subject, RDF.type, CCF.extraction_set))
+        self.graph.add((subject, RDFS.label, consortium_name))
         self.graph.add((subject, CCF.consortium_name, consortium_name))
         self.graph.add((subject, CCF.extraction_set_for, reference_organ_iri))
         self.graph.add((subject, CCF.rui_rank, rui_rank))
@@ -147,7 +148,7 @@ class SPOntology:
         self.graph.add((spatial_entity_id, RDF.type, CCF.spatial_entity))
 
         if label:
-            self.graph.add((spatial_entity_id, DCTERMS.title, label))
+            self.graph.add((spatial_entity_id, RDFS.label, label))
 
         self.graph.add((spatial_entity_id, CCF.creator_first_name,
                         creator_first_name))
