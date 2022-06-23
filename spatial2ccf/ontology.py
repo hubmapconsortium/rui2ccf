@@ -46,6 +46,8 @@ class SPOntology:
                 object_type = obj['@type']
                 if object_type == "SpatialEntity":
                     self._add_spatial_entity(obj)
+                elif object_type == "RetiredSpatialEntity":
+                    self._add_retired_spatial_entity(obj)
                 elif object_type == "SpatialPlacement":
                     self._add_spatial_placement(obj)
                 elif object_type == "ExtractionSet":
@@ -99,6 +101,12 @@ class SPOntology:
         self.graph.add((subject, CCF.extraction_set_for, reference_organ_iri))
         self.graph.add((subject, CCF.rui_rank, rui_rank))
 
+    def _add_retired_spatial_entity(self, obj, publisher=None):
+        spatial_entity_id = self._expand_instance_id(obj['@id'])
+        self._add_retired_spatial_entity_to_graph(
+            spatial_entity_id,
+            self._get_representation_of(obj))
+
     def _add_spatial_entity(self, obj, publisher=None):
         spatial_entity_id = self._expand_instance_id(obj['@id'])
         self._add_spatial_entity_to_graph(
@@ -134,6 +142,14 @@ class SPOntology:
                 self._add_spatial_placement(object_placement,
                                             spatial_entity_id,
                                             publisher)
+
+    def _add_retired_spatial_entity_to_graph(self, spatial_entity_id,
+                                             representation_of):
+        self.graph.add((spatial_entity_id, RDF.type, OWL.NamedIndividual))
+        self.graph.add((spatial_entity_id, RDF.type,
+                        CCF.retired_spatial_entity))
+        self.graph.add((spatial_entity_id, CCF.representation_of,
+                        representation_of))
 
     def _add_spatial_entity_to_graph(self, spatial_entity_id, label,
                                      creator_first_name, creator_last_name,

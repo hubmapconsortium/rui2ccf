@@ -62,6 +62,7 @@ class CCF(DefinedNamespace):
     characterizing_biomarker_set: URIRef
     extraction_set: URIRef
     spatial_entity: URIRef
+    retired_spatial_entity: URIRef
     spatial_object_reference: URIRef
     spatial_placement: URIRef
     biomarker: URIRef
