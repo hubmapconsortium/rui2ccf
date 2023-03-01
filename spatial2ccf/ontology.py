@@ -162,6 +162,8 @@ class SPOntology:
                                      rui_rank, publisher):
         self.graph.add((spatial_entity_id, RDF.type, OWL.NamedIndividual))
         self.graph.add((spatial_entity_id, RDF.type, CCF.spatial_entity))
+        if representation_of:
+            self.graph.add((spatial_entity_id, RDF.type, representation_of))
 
         if label:
             self.graph.add((spatial_entity_id, RDFS.label, label))
@@ -379,8 +381,8 @@ class SPOntology:
     def _get_representation_of(self, obj):
         try:
             entity_id = obj['representation_of']
-            reference_of = self._expand_anatomical_entity_id(entity_id)
-            return self._iri(reference_of)
+            representation_of = self._expand_anatomical_entity_id(entity_id)
+            return representation_of
         except KeyError:
             return None
 
@@ -436,7 +438,7 @@ class SPOntology:
             id_string = obo_pattern.sub(
                 "http://purl.obolibrary.org/obo/", str)
         elif "UBERON:" in str:
-            uberon_pattern = re.compile("CL:", re.IGNORECASE)
+            uberon_pattern = re.compile("UBERON:", re.IGNORECASE)
             id_string = uberon_pattern.sub(
                 "http://purl.obolibrary.org/obo/UBERON_", str)
         elif "http://purl.obolibrary.org/obo/FMA_" in str:
