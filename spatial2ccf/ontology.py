@@ -26,16 +26,6 @@ class SPOntology:
         # Ontology properties
         Ontology(identifier=URIRef(ontology_iri), graph=g)
 
-        # Declaration axioms
-        Property(CCF.has_extraction_set, baseType=OWL.ObjectProperty, graph=g)
-        Property(CCF.extraction_set_for, baseType=OWL.ObjectProperty, graph=g)
-        Property(CCF.placement_for, baseType=OWL.ObjectProperty, graph=g)
-        Property(CCF.placement_relative_to, baseType=OWL.ObjectProperty, graph=g)
-        Property(CCF.has_reference_organ, baseType=OWL.ObjectProperty, graph=g)
-        Property(CCF.has_object_reference, baseType=OWL.ObjectProperty, graph=g)
-        Property(CCF.has_placement, baseType=OWL.ObjectProperty, graph=g)
-        Property(CCF.represents_bbox_of, baseType=OWL.ObjectProperty, graph=g)
-
         return SPOntology(g)
 
     def mutate(self, data):
@@ -95,7 +85,7 @@ class SPOntology:
     def _add_extraction_set_to_graph(self, subject, consortium_name,
                                      reference_organ_iri, rui_rank):
         self.graph.add((subject, RDF.type, OWL.NamedIndividual))
-        self.graph.add((subject, RDF.type, CCF.extraction_set))
+        self.graph.add((subject, RDF.type, CCF.ExtractionSet))
         self.graph.add((subject, RDFS.label, consortium_name))
         self.graph.add((subject, CCF.consortium_name, consortium_name))
         self.graph.add((subject, CCF.extraction_set_for, reference_organ_iri))
@@ -147,7 +137,7 @@ class SPOntology:
                                              representation_of):
         self.graph.add((spatial_entity_id, RDF.type, OWL.NamedIndividual))
         self.graph.add((spatial_entity_id, RDF.type,
-                        CCF.retired_spatial_entity))
+                        CCF.RetiredSpatialEntity))
         self.graph.add((spatial_entity_id, CCF.representation_of,
                         representation_of))
 
@@ -161,7 +151,7 @@ class SPOntology:
                                      representation_of, extraction_set,
                                      rui_rank, publisher):
         self.graph.add((spatial_entity_id, RDF.type, OWL.NamedIndividual))
-        self.graph.add((spatial_entity_id, RDF.type, CCF.spatial_entity))
+        self.graph.add((spatial_entity_id, RDF.type, CCF.SpatialEntity))
         if representation_of:
             self.graph.add((spatial_entity_id, RDF.type, representation_of))
 
@@ -233,7 +223,7 @@ class SPOntology:
     def _add_object_reference_to_graph(self, obj_ref_id, file_url, file_format,
                                        file_subpath, object_placement):
         self.graph.add((obj_ref_id, RDF.type, OWL.NamedIndividual))
-        self.graph.add((obj_ref_id, RDF.type, CCF.spatial_object_reference))
+        self.graph.add((obj_ref_id, RDF.type, CCF.SpatialObjectReference))
         self.graph.add((obj_ref_id, CCF.file_url, file_url))
         file_name = file_url.split("/")[-1]
         self.graph.add((obj_ref_id, CCF.file_name, self._string(file_name)))
@@ -278,7 +268,7 @@ class SPOntology:
                                        z_translation, translation_unit,
                                        placement_date, publisher):
         self.graph.add((obj_pmnt_id, RDF.type, OWL.NamedIndividual))
-        self.graph.add((obj_pmnt_id, RDF.type, CCF.spatial_placement))
+        self.graph.add((obj_pmnt_id, RDF.type, CCF.SpatialPlacement))
         self.graph.add((obj_pmnt_id, CCF.placement_relative_to,
                         target_spatial_id))
         self.graph.add((obj_pmnt_id, CCF.placement_for,
@@ -372,7 +362,7 @@ class SPOntology:
 
     def _expand_instance_id(self, id_string):
         if "http://" not in id_string:
-            if id_string[0] == "#":
+            while id_string[0] == "#":
                 id_string = id_string[1:]
             return self._iri(CCF._NS + "latest/ccf.owl#" + id_string)
         else:

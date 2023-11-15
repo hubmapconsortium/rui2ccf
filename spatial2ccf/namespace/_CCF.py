@@ -59,12 +59,10 @@ class CCF(DefinedNamespace):
     collides_with: URIRef
 
     # http://www.w3.org/2002/07/owl#Class
-    characterizing_biomarker_set: URIRef
-    extraction_set: URIRef
-    spatial_entity: URIRef
-    retired_spatial_entity: URIRef
-    spatial_object_reference: URIRef
-    spatial_placement: URIRef
-    biomarker: URIRef
+    ExtractionSet: URIRef
+    SpatialEntity: URIRef
+    RetiredSpatialEntity: URIRef
+    SpatialObjectReference: URIRef
+    SpatialPlacement: URIRef
 
     _NS = Namespace("http://purl.org/ccf/")
